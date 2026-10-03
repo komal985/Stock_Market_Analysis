@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <meta name="description" content="Explore stock performance, price trends and risk with Market Lens.">
+    <title>Market Lens — Stock intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.5.3/papaparse.min.js" defer></script>
+    <script src="/dashboard.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="/" aria-label="Market Lens home">
+          <span class="brand-mark">M<span>·</span></span>
+          <span class="brand-name">market<span>lens</span><small>STOCK INTELLIGENCE</small></span>
+        </a>
+        <div class="side-section">
+          <p class="side-label">WORKSPACE</p>
+          <label class="field-label" for="source-select">Data source</label>
+          <select id="source-select" class="control">
+            <option value="demo">Demo history</option>
+            <option value="upload">Upload CSV</option>
+          </select>
+          <input id="csv-file" type="file" accept=".csv,text/csv" hidden>
+          <button id="upload-button" class="upload-button" type="button" hidden>
+            <span>＋</span> Choose price history CSV
+          </button>
+          <p id="file-name" class="file-name">Synthetic sample · 2021 to today</p>
+          <label class="field-label" for="symbol-input">Ticker / label</label>
+          <input id="symbol-input" class="control" maxlength="16" value="DEMO" autocomplete="off">
+          <div id="currency-row" class="currency-row" hidden>
+            <label class="field-label" for="currency-select">Uploaded prices are in</label>
+            <select id="currency-select" class="control">
+              <option value="INR" selected>Indian rupees · INR</option>
+              <option value="USD">US dollars · USD</option>
+            </select>
+          </div>
+        </div>
+        <div class="side-section">
+          <p class="side-label">TIME WINDOW</p>
+          <div class="period-grid" id="period-grid">
+            <button class="period-button" data-period="1M">1M</button>
+            <button class="period-button" data-period="3M">3M</button>
+            <button class="period-button" data-period="6M">6M</button>
+            <button class="period-button" data-period="1Y">1Y</button>
+            <button class="period-button" data-period="3Y">3Y</button>
+            <button class="period-button active" data-period="ALL">ALL</button>
+          </div>
+          <button id="custom-toggle" class="custom-toggle" type="button">Choose custom dates <span>＋</span></button>
+          <div id="custom-dates" class="date-pair" hidden>
+            <label>From<input class="control" id="start-date" type="date"></label>
+            <label>To<input class="control" id="end-date" type="date"></label>
+          </div>
+        </div>
+        <div class="side-section">
+          <p class="side-label">TREND INDICATORS</p>
+          <div class="slider-head"><label for="short-window">Short average</label><output id="short-output">20 sessions</output></div>
+          <input id="short-window" type="range" min="5" max="60" value="20">
+          <div class="slider-head"><label for="long-window">Long average</label><output id="long-output">50 sessions</output></div>
+          <input id="long-window" type="range" min="20" max="200" value="50">
+          <label class="check-row"><input id="show-short-ma" type="checkbox" checked><span class="swatch blue"></span>Short moving average</label>
+          <label class="check-row"><input id="show-long-ma" type="checkbox" checked><span class="swatch purple"></span>Long moving average</label>
+          <label class="check-row"><input id="show-rsi" type="checkbox"><span class="swatch amber"></span>RSI indicator</label>
+        </div>
+        <div class="side-bottom">
+          <button id="refresh-rate" class="rate-refresh" type="button">↻ Refresh INR rate</button>
+          <p id="rate-label" class="rate-label">Loading exchange rate…</p>
+          <span class="live-dot"></span><span class="market-status">ANALYSIS READY</span>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumb">MARKETS <span>/</span> EQUITIES <span>/</span> <strong id="crumb-symbol">DEMO</strong></div>
+          <div class="top-actions"><span class="date-chip" id="header-date"></span><span class="avatar">ML</span></div>
+        </header>
+        <section class="page-heading">
+          <div><p class="eyebrow">YOUR MARKET, IN FOCUS</p><h1>Market overview<span class="heading-period" id="heading-period">· ALL TIME</span></h1>
+            <p class="intro">Historical performance, made easier to explore.</p></div>
+          <button id="analyze-button" class="primary-button" type="button"><span>↗</span> Analyze data</button>
+        </section>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <div id="error" class="error-banner" role="alert" hidden></div>
+        <section class="market-strip">
+          <div class="market-identity"><div class="ticker-icon" id="ticker-icon">D</div><div><strong id="company-name">DEMO</strong><span>Historical price series</span></div></div>
+          <div class="market-context"><span class="context-dot"></span><span id="range-label">Loading observations</span></div>
+          <span class="synthetic-badge" id="source-badge">SYNTHETIC SAMPLE</span>
+        </section>
+        <section class="kpi-grid" aria-label="Performance summary">
+          <article class="kpi-card highlight"><span class="kpi-label">LATEST CLOSE <span class="info-mark" title="Latest available close in the selected period">i</span></span><strong class="kpi-value" id="metric-close">—</strong><span class="kpi-note" id="metric-day-change">Latest daily move</span></article>
+          <article class="kpi-card"><span class="kpi-label">PERIOD RETURN</span><strong class="kpi-value" id="metric-return">—</strong><span class="kpi-note">Selected date range</span></article>
+          <article class="kpi-card"><span class="kpi-label">ANNUALIZED VOLATILITY</span><strong class="kpi-value" id="metric-volatility">—</strong><span class="kpi-note">Daily volatility × √252</span></article>
+          <article class="kpi-card"><span class="kpi-label">MAX DRAWDOWN</span><strong class="kpi-value" id="metric-drawdown">—</strong><span class="kpi-note">Peak-to-trough decline</span></article>
+          <article class="kpi-card"><span class="kpi-label">AVG. DAILY VOLUME</span><strong class="kpi-value" id="metric-volume">—</strong><span class="kpi-note">Mean reported volume</span></article>
+        </section>
+        <nav class="view-tabs" aria-label="Dashboard views">
+          <button class="view-tab active" data-view="overview"><span>◫</span> Price &amp; trend</button>
+          <button class="view-tab" data-view="returns"><span>⌁</span> Returns &amp; risk</button>
+          <button class="view-tab" data-view="activity"><span>▥</span> Trading activity</button>
+          <button class="view-tab" data-view="data"><span>▤</span> Data &amp; insights</button>
+        </nav>
+        <section class="view-panel active" id="view-overview">
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><p class="panel-kicker">PRICE ACTION</p><h2>Price &amp; trend</h2></div>
+              <div class="chart-controls"><label class="sr-only" for="chart-style">Chart style</label><select class="chart-select" id="chart-style"><option value="line">Line</option><option value="candle">Candlestick</option></select></div>
+            </div>
+            <div id="price-chart" class="chart large-chart"><div class="chart-loading">Loading price history…</div></div>
+            <div class="chart-footnote">Drag to zoom · double-click to reset · toggle traces in the legend</div>
+          </article>
+          <div class="insight-grid">
+            <article class="panel mini-insight"><span class="panel-kicker">RELATIVE STRENGTH</span><div class="insight-main"><strong id="rsi-value">—</strong><span id="rsi-status">14-session RSI</span></div><div class="meter-track"><div id="rsi-meter" class="meter-fill"></div></div><p>Below 30 is often considered oversold; above 70 overbought.</p></article>
+            <article class="panel mini-insight"><span class="panel-kicker">MARKET DIRECTION</span><div class="insight-main"><strong id="direction-value">—</strong><span id="direction-status">Trend snapshot</span></div><p id="direction-copy">Compare the latest close with the long moving average.</p></article>
+            <article class="panel mini-insight"><span class="panel-kicker">DATA QUALITY</span><div class="insight-main"><strong id="quality-value">—</strong><span>usable sessions</span></div><p id="quality-copy">Invalid rows are excluded; dates are sorted and deduplicated.</p></article>
+          </div>
+        </section>
+        <section class="view-panel" id="view-returns">
+          <div class="two-column">
+            <article class="panel chart-panel"><div class="panel-heading"><div><p class="panel-kicker">GROWTH OF 1</p><h2>Cumulative performance</h2></div></div><div id="cumulative-chart" class="chart medium-chart"></div></article>
+            <article class="panel chart-panel"><div class="panel-heading"><div><p class="panel-kicker">RISK PROFILE</p><h2>Rolling volatility</h2></div></div><div id="volatility-chart" class="chart medium-chart"></div></article>
+          </div>
+          <article class="panel chart-panel"><div class="panel-heading"><div><p class="panel-kicker">RETURN DISTRIBUTION</p><h2>Daily return frequency</h2></div><label class="bins-control">Bins <input id="histogram-bins" type="range" min="10" max="80" value="35"><output id="bins-output">35</output></label></div><div id="histogram-chart" class="chart medium-chart"></div></article>
+          <article class="panel chart-panel"><div class="panel-heading"><div><p class="panel-kicker">SEASONALITY</p><h2>Monthly returns</h2></div></div><div id="heatmap-chart" class="chart heatmap-chart"></div></article>
+        </section>
+        <section class="view-panel" id="view-activity">
+          <article class="panel chart-panel"><div class="panel-heading"><div><p class="panel-kicker">MARKET PARTICIPATION</p><h2>Price &amp; trading volume</h2></div></div><div id="volume-chart" class="chart large-chart"></div><div id="volume-empty" class="empty-state" hidden>Volume data was not included in this history.</div></article>
+        </section>
+        <section class="view-panel" id="view-data">
+          <article class="panel insights-panel"><div class="panel-heading"><div><p class="panel-kicker">PERIOD RECAP</p><h2>What moved?</h2></div></div><p id="insight-summary" class="summary-copy"></p><div class="recap-grid"><div><span>UP SESSIONS</span><strong id="up-days">—</strong></div><div><span>DOWN SESSIONS</span><strong id="down-days">—</strong></div><div><span>BEST SESSION</span><strong id="best-day">—</strong></div><div><span>WEAKEST SESSION</span><strong id="worst-day">—</strong></div></div></article>
+          <article class="panel table-panel"><div class="panel-heading table-heading"><div><p class="panel-kicker">NORMALIZED HISTORY</p><h2>Trading sessions</h2></div><div class="table-tools"><input class="table-search" id="table-search" placeholder="Search dates or values" aria-label="Search data table"><select class="chart-select" id="row-filter"><option value="all">All sessions</option><option value="up">Up sessions</option><option value="down">Down sessions</option><option value="flat">Flat sessions</option></select><button class="secondary-button" id="download-button" type="button">↓ Export CSV</button></div></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Open (₹)</th><th>High (₹)</th><th>Low (₹)</th><th>Close (₹)</th><th>Volume</th><th>Daily return</th><th>Drawdown</th></tr></thead><tbody id="data-rows"></tbody></table></div><div class="table-footer"><span id="table-count"></span><div class="pagination"><button id="prev-page" type="button" aria-label="Previous page">←</button><span id="page-label"></span><button id="next-page" type="button" aria-label="Next page">→</button></div></div></article>
+        </section>
+        <footer>MARKET LENS <span>·</span> Historical data for research and education, not investment advice.</footer>
+      </main>
+    </div>
+  </body>
+</html>

@@ -17,6 +17,7 @@ from analysis import (
     clean_stock_data,
     convert_price_values,
     enrich_stock_data,
+    make_demo_data as build_demo_data,
     monthly_returns,
 )
 
@@ -58,18 +59,7 @@ st.markdown(
 
 def make_demo_data() -> pd.DataFrame:
     """Create reproducible sample daily history from 2021 through today."""
-    rng = np.random.default_rng(17)
-    dates = pd.bdate_range(start="2021-01-01", end=pd.Timestamp.today().normalize())
-    daily_returns = rng.normal(loc=0.00035, scale=0.015, size=len(dates))
-    close = 120 * np.cumprod(1 + daily_returns)
-    overnight = rng.normal(loc=0.0, scale=0.004, size=len(dates))
-    open_price = close * (1 + overnight)
-    high = np.maximum(open_price, close) * (1 + rng.uniform(0.001, 0.018, len(dates)))
-    low = np.minimum(open_price, close) * (1 - rng.uniform(0.001, 0.018, len(dates)))
-    volume = rng.lognormal(mean=15.2, sigma=0.35, size=len(dates)).astype(np.int64)
-    return pd.DataFrame(
-        {"Date": dates, "Open": open_price, "High": high, "Low": low, "Close": close, "Volume": volume}
-    )
+    return build_demo_data()
 
 
 def show_plot(figure: plt.Figure) -> None:

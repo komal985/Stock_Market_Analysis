@@ -8,6 +8,24 @@ import pandas as pd
 TRADING_DAYS_PER_YEAR = 252
 
 
+def make_demo_data(start_date: str = "2021-01-01") -> pd.DataFrame:
+    """Create deterministic synthetic daily OHLCV history through today."""
+    dates = pd.bdate_range(start=start_date, end=pd.Timestamp.today().normalize())
+    if dates.empty:
+        raise ValueError("The demo start date must not be in the future.")
+
+    rng = np.random.default_rng(17)
+    daily_returns = rng.normal(loc=0.00035, scale=0.015, size=len(dates))
+    close = 120 * np.cumprod(1 + daily_returns)
+    open_price = close * (1 + rng.normal(loc=0.0, scale=0.004, size=len(dates)))
+    high = np.maximum(open_price, close) * (1 + rng.uniform(0.001, 0.018, len(dates)))
+    low = np.minimum(open_price, close) * (1 - rng.uniform(0.001, 0.018, len(dates)))
+    volume = rng.lognormal(mean=15.2, sigma=0.35, size=len(dates)).astype(np.int64)
+    return pd.DataFrame(
+        {"Date": dates, "Open": open_price, "High": high, "Low": low, "Close": close, "Volume": volume}
+    )
+
+
 def clean_stock_data(raw: pd.DataFrame) -> pd.DataFrame:
     """Normalize stock-history columns and return clean, date-sorted observations."""
     if raw.empty:
