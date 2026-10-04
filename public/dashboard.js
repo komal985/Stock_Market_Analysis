@@ -35,7 +35,8 @@ function formatPercent(value, digits = 2) {
 }
 
 function formatDate(value, options = { day: "2-digit", month: "short", year: "numeric" }) {
-  return new Intl.DateTimeFormat("en-IN", options).format(new Date(`${String(value).slice(0, 10)}T12:00:00Z`));
+  const valueDate = value instanceof Date ? value : new Date(`${String(value).slice(0, 10)}T12:00:00Z`);
+  return new Intl.DateTimeFormat("en-IN", options).format(valueDate);
 }
 
 function escapeHtml(value) {
@@ -73,8 +74,10 @@ function selectedDates() {
   if (customPeriod) {
     return { start_date: $("start-date").value || null, end_date: $("end-date").value || null };
   }
-  const last = new Date(`${rawRows[rawRows.length - 1].Date}T00:00:00`);
-  const first = new Date(`${rawRows[0].Date}T00:00:00`);
+  const lastDate = String(rawRows[rawRows.length - 1].Date).slice(0, 10);
+  const firstDate = String(rawRows[0].Date).slice(0, 10);
+  const last = new Date(`${lastDate}T00:00:00`);
+  const first = new Date(`${firstDate}T00:00:00`);
   if (activePeriod !== "ALL") {
     const months = { "1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36 }[activePeriod];
     const start = new Date(last);
