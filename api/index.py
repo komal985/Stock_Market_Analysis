@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import date
 from pathlib import Path
@@ -142,4 +143,5 @@ def analyze(request: AnalysisRequest) -> dict[str, Any]:
 
 
 PUBLIC_DIRECTORY = Path(__file__).resolve().parents[1] / "public"
-app.mount("/", StaticFiles(directory=PUBLIC_DIRECTORY, html=True), name="frontend")
+if os.environ.get("VERCEL") != "1":
+    app.mount("/", StaticFiles(directory=PUBLIC_DIRECTORY, html=True), name="frontend")

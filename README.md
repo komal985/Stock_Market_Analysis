@@ -21,6 +21,8 @@ python -m uvicorn api.index:app --reload
 
 Open `http://127.0.0.1:8000`. The Vercel entrypoint is configured in `pyproject.toml`; deploy the repository root from the Vercel dashboard. `/api/health`, `/api/demo`, and `/api/analyze` are the JSON endpoints. The browser dashboard supports hover/zoom charts, line/candlestick views, range and custom-date filters, RSI and moving-average toggles, CSV upload, searchable/paginated history, and INR CSV export.
 
+Locally, FastAPI serves the files in `public/` for convenience. On Vercel, those same files are served by its CDN; the FastAPI app only handles the `/api/` routes.
+
 ## CSV format
 
 Upload a CSV containing `Date` and `Close` columns. Column names are case-insensitive. `Date` may also be named `Datetime` or `Timestamp`; `Close` may be `Adj Close`, `Adjusted Close`, or `Price` when a regular `Close` column is not present. When both regular and adjusted close columns are present, `Close` takes priority. `Open`, `High`, `Low`, and `Volume` are optional.
